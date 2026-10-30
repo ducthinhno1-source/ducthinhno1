@@ -1,0 +1,282 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ducthinhno1 - Cloud Storage</title>
+<style>
+:root {
+  --bg:#0b1020;--panel:#151d31;--panel2:#202b43;
+  --text:#f4f6ff;--muted:#9aa9c3;--primary:#796bff;
+  --border:#293650;--danger:#e95068;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+font-family:Arial,sans-serif}
+button,input{font:inherit}
+button{cursor:pointer}
+.app{display:flex;min-height:100vh}
+.sidebar{width:245px;background:#10182a;padding:25px 16px;
+border-right:1px solid var(--border)}
+.logo{font-size:23px;font-weight:bold;margin-bottom:35px}
+.logo span{color:var(--primary)}
+.nav button{width:100%;display:block;text-align:left;
+background:transparent;color:var(--muted);border:0;
+padding:14px;border-radius:10px;margin-bottom:7px}
+.nav button:hover,.nav button.active{
+background:var(--panel2);color:white}
+.main{flex:1;padding:30px;min-width:0}
+.topbar{display:flex;justify-content:space-between;
+align-items:center;gap:15px;flex-wrap:wrap}
+h1{margin:0 0 8px;font-size:28px}
+.muted{color:var(--muted)}
+.btn{background:var(--primary);color:white;border:0;
+padding:12px 17px;border-radius:10px}
+.btn:hover{opacity:.85}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);
+gap:16px;margin:25px 0}
+.card{background:var(--panel);border:1px solid var(--border);
+border-radius:15px;padding:20px}
+.card strong{font-size:25px;display:block;margin-top:12px}
+.toolbar{display:flex;gap:12px;margin:22px 0;flex-wrap:wrap}
+.input{background:var(--panel);border:1px solid var(--border);
+padding:13px;border-radius:10px;color:white;flex:1;min-width:180px}
+.file-list{display:grid;gap:12px}
+.file-item{display:flex;align-items:center;justify-content:space-between;
+gap:12px;background:var(--panel);border:1px solid var(--border);
+padding:16px;border-radius:12px;flex-wrap:wrap}
+.file-name{font-weight:bold;overflow-wrap:anywhere}
+.file-info{color:var(--muted);font-size:13px;margin-top:6px}
+.actions{display:flex;gap:8px}
+.small-btn{background:var(--panel2);color:white;border:0;
+padding:9px 12px;border-radius:8px}
+.delete{background:var(--danger)}
+.empty{text-align:center;padding:55px 15px;color:var(--muted)}
+.page{display:none}
+.page.active{display:block}
+.preview{max-width:100%;max-height:65vh;border-radius:12px}
+#previewBox{margin-top:20px}
+footer{color:var(--muted);font-size:12px;margin-top:40px}
+@media(max-width:750px){
+.app{display:block}.sidebar{width:100%;padding:15px}
+.logo{margin-bottom:12px}.nav{display:flex;overflow-x:auto}
+.nav button{white-space:nowrap;width:auto}
+.main{padding:18px}.cards{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="logo">DUCTHINH<span>NO1</span></div>
+  <div class="nav">
+    <button class="active" data-page="home">🏠 Tổng quan</button>
+    <button data-page="files">📁 Tất cả tệp</button>
+    <button data-page="images">🖼️ Hình ảnh</button>
+    <button data-page="upload">⬆️ Tải lên</button>
+    <button data-page="settings">⚙️ Cài đặt</button>
+  </div>
+</aside>
+
+<main class="main">
+<section id="home" class="page active">
+  <div class="topbar">
+    <div><h1>Xin chào 👋</h1>
+    <div class="muted">Chào mừng đến với kho lưu trữ ducthinhno1</div></div>
+    <button class="btn" onclick="showPage('upload')">+ Tải tệp lên</button>
+  </div>
+  <div class="cards">
+    <div class="card">📁 Tổng số tệp<strong id="total">0</strong></div>
+    <div class="card">🖼️ Hình ảnh<strong id="imagesTotal">0</strong></div>
+    <div class="card">💾 Dung lượng đã dùng<strong id="used">0 MB</strong></div>
+  </div>
+  <div class="card">
+    <h3>Kho lưu trữ của bạn</h3>
+    <p class="muted">Tải lên và quản lý các tệp của bạn tại đây.</p>
+    <button class="btn" onclick="showPage('files')">Xem tất cả tệp</button>
+  </div>
+</section>
+
+<section id="files" class="page">
+  <h1>Tất cả tệp</h1>
+  <p class="muted">Quản lý các tệp đã tải lên.</p>
+  <div class="toolbar">
+    <input id="search" class="input" placeholder="🔍 Tìm kiếm tệp...">
+  </div>
+  <div id="fileList" class="file-list"></div>
+</section>
+
+<section id="images" class="page">
+  <h1>Hình ảnh</h1>
+  <p class="muted">Danh sách ảnh trong kho lưu trữ.</p>
+  <div id="imageList" class="file-list"></div>
+</section>
+
+<section id="upload" class="page">
+  <h1>Tải tệp lên</h1>
+  <p class="muted">Chọn một hoặc nhiều tệp từ thiết bị.</p>
+  <div class="card">
+    <input id="fileInput" type="file" multiple>
+    <p class="muted">Các tệp được lưu trong trình duyệt trên thiết bị này.</p>
+    <button class="btn" onclick="uploadFiles()">Tải lên ngay</button>
+    <p id="uploadStatus" class="muted"></p>
+  </div>
+</section>
+
+<section id="settings" class="page">
+  <h1>Cài đặt</h1>
+  <div class="card">
+    <h3>Thông tin website</h3>
+    <p>ducthinhno1 - Kho lưu trữ cá nhân</p>
+    <p class="muted">Phiên bản 1.0</p>
+    <button class="small-btn" onclick="location.reload()">Làm mới trang</button>
+  </div>
+</section>
+
+<div id="previewBox"></div>
+<footer>© 2026 ducthinhno1. Personal Storage.</footer>
+</main>
+</div>
+
+<script>
+const DB_NAME = "ducthinhno1_storage";
+let db;
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const request=indexedDB.open(DB_NAME,1);
+    request.onupgradeneeded=()=>{
+      request.result.createObjectStore("files",{keyPath:"id"});
+    };
+    request.onsuccess=()=>{db=request.result;resolve(db)};
+    request.onerror=()=>reject(request.error);
+  });
+}
+
+function store(mode="readonly"){
+  return db.transaction("files",mode).objectStore("files");
+}
+
+function getAll(){
+  return new Promise((resolve,reject)=>{
+    const request=store().getAll();
+    request.onsuccess=()=>resolve(request.result);
+    request.onerror=()=>reject(request.error);
+  });
+}
+
+function formatSize(bytes){
+  if(bytes<1024)return bytes+" B";
+  if(bytes<1048576)return (bytes/1024).toFixed(1)+" KB";
+  return (bytes/1048576).toFixed(2)+" MB";
+}
+
+async function uploadFiles(){
+  const input=document.getElementById("fileInput");
+  const status=document.getElementById("uploadStatus");
+  const files=[...input.files];
+  if(!files.length){status.textContent="Bạn chưa chọn tệp.";return}
+  status.textContent="Đang lưu...";
+  for(const file of files){
+    const record={
+      id:crypto.randomUUID(),
+      name:file.name,
+      type:file.type,
+      size:file.size,
+      date:new Date().toISOString(),
+      blob:file
+    };
+    await new Promise((resolve,reject)=>{
+      const request=store("readwrite").add(record);
+      request.onsuccess=resolve;
+      request.onerror=()=>reject(request.error);
+    });
+  }
+  input.value="";
+  status.textContent="Đã lưu "+files.length+" tệp thành công!";
+  await render();
+}
+
+async function removeFile(id){
+  if(!confirm("Bạn có chắc muốn xóa tệp này?"))return;
+  await new Promise((resolve,reject)=>{
+    const request=store("readwrite").delete(id);
+    request.onsuccess=resolve;
+    request.onerror=()=>reject(request.error);
+  });
+  await render();
+}
+
+async function previewFile(id){
+  const files=await getAll();
+  const file=files.find(f=>f.id===id);
+  if(!file)return;
+  const box=document.getElementById("previewBox");
+  const url=URL.createObjectURL(file.blob);
+  if(file.type.startsWith("image/")){
+    box.innerHTML='<div class="card"><h3>'+escapeHTML(file.name)+'</h3><img class="preview" src="'+url+'" alt="Ảnh xem trước"><p><button class="small-btn" onclick="closePreview()">Đóng</button></p></div>';
+  }else{
+    box.innerHTML='<div class="card"><h3>'+escapeHTML(file.name)+'</h3><p>Không có bản xem trước cho loại tệp này.</p><a class="btn" href="'+url+'" download="'+escapeHTML(file.name)+'">Tải xuống</a> <button class="small-btn" onclick="closePreview()">Đóng</button></div>';
+  }
+  box.scrollIntoView({behavior:"smooth"});
+}
+
+function closePreview(){
+  document.getElementById("previewBox").innerHTML="";
+}
+
+function escapeHTML(value){
+  return String(value).replace(/[&<>"']/g,c=>({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  }[c]));
+}
+
+async function render(){
+  const files=await getAll();
+  document.getElementById("total").textContent=files.length;
+  document.getElementById("imagesTotal").textContent=
+    files.filter(f=>f.type.startsWith("image/")).length;
+  const totalSize=files.reduce((sum,f)=>sum+f.size,0);
+  document.getElementById("used").textContent=formatSize(totalSize);
+  const query=(document.getElementById("search")?.value||"").toLowerCase();
+  const filtered=files.filter(f=>f.name.toLowerCase().includes(query));
+  document.getElementById("fileList").innerHTML=
+    filtered.length?filtered.map(fileHTML).join(""):'<div class="empty">Chưa có tệp nào.</div>';
+  const images=files.filter(f=>f.type.startsWith("image/"));
+  document.getElementById("imageList").innerHTML=
+    images.length?images.map(fileHTML).join(""):'<div class="empty">Chưa có hình ảnh.</div>';
+}
+
+function fileHTML(f){
+  return `<div class="file-item">
+    <div><div class="file-name">📄 ${escapeHTML(f.name)}</div>
+    <div class="file-info">${formatSize(f.size)} · ${new Date(f.date).toLocaleDateString("vi-VN")}</div></div>
+    <div class="actions">
+      <button class="small-btn" onclick="previewFile('${f.id}')">Xem</button>
+      <button class="small-btn delete" onclick="removeFile('${f.id}')">Xóa</button>
+    </div>
+  </div>`;
+}
+
+function showPage(id){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.querySelectorAll(".nav button").forEach(b=>{
+    b.classList.toggle("active",b.dataset.page===id);
+  });
+  closePreview();
+  render();
+}
+
+document.querySelectorAll(".nav button").forEach(button=>{
+  button.addEventListener("click",()=>showPage(button.dataset.page));
+});
+document.getElementById("search").addEventListener("input",render);
+
+openDB().then(render).catch(error=>{
+  alert("Không thể mở kho lưu trữ: "+error.message);
+});
+</script>
+</body>
+</html>
